@@ -10,17 +10,15 @@ IConfiguration config = new ConfigurationBuilder()
     .Build();
 
 // assemble a service container and register the sensenet repository service
-var services = new ServiceCollection()
-    .AddSenseNetClient()
-    .ConfigureSenseNetRepository((options => { config.Bind("sensenet", options); }))
+var provider = new ServiceCollection()
+    .AddSenseNetRepository(options => { config.Bind("sensenet", options); })
     .AddLogging(logging => logging.AddConsole())
     .BuildServiceProvider();
 
-var repositories = services.GetRequiredService<IRepositoryCollection>();
-var repository = await repositories.GetRepositoryAsync(CancellationToken.None);
+var serverFactory = provider.GetRequiredService<IServerContextFactory>();
+var server = await serverFactory.GetServerAsync();
 
-var children = await repository.LoadCollectionAsync(
-    new LoadCollectionRequest { Path = "/Root" }, CancellationToken.None);
+var children = await Content.LoadCollectionAsync("/Root", server);
 Console.WriteLine("Children of /Root");
 foreach (var content in children)
     Console.WriteLine($"  {content.Name,-20} {content["Type"]}");
